@@ -26,7 +26,7 @@ class OAuth2PasswordBearerCookie(OAuth2):
             token_url: str,
             scheme_name: str = None,
             scopes: dict = None,
-            auto_error: bool = True,
+            auto_error: bool = False,
     ):
         if not scopes:
             scopes = {}
