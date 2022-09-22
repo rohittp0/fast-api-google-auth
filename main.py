@@ -1,9 +1,9 @@
 from fastapi import FastAPI, Depends
 from starlette.middleware.cors import CORSMiddleware
 
-from google_auth import auth
-from google_auth.dependencies import get_current_user
-from google_auth.models import User
+from auth import auth
+from auth.dependencies import get_current_user
+from auth.models import User
 
 app = FastAPI()
 

@@ -1,46 +1,49 @@
 from datetime import timedelta
 
-from fastapi import HTTPException, APIRouter
+from fastapi import HTTPException, APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
 from google.auth.exceptions import GoogleAuthError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from starlette.responses import JSONResponse, HTMLResponse, RedirectResponse
+from starlette.responses import JSONResponse, RedirectResponse
 from starlette.requests import Request
 
 from google.oauth2 import id_token
 from google.auth.transport import requests
+from starlette.templating import Jinja2Templates
 
-from google_auth.dependencies import authenticate_user_email, create_access_token
-from google_auth.models import Token
-from google_auth.utils import set_up, get_login_js
+from auth.dependencies import create_access_token, get_user_by_email, create_user
+from auth.models import Token
+from config.db import get_db
+from config.variables import set_up
 
 config = set_up()
+templates = Jinja2Templates(directory="auth/templates")
 
 COOKIE_AUTHORIZATION_NAME = "Authorization"
 
 API_LOCATION = f"{config['protocol']}{config['domain']}:{config['port']}"
-SWAP_TOKEN_ENDPOINT = "/swap_token"
-SUCCESS_ROUTE = "/"
+SWAP_TOKEN_ENDPOINT = "/auth/swap_token"
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-js_client = get_login_js(
-    client_id=config['google']['id'],
-    api_location=API_LOCATION,
-    swap_token_endpoint=SWAP_TOKEN_ENDPOINT,
-    success_route=SUCCESS_ROUTE
-)
 
 router = APIRouter()
 
 
-@router.get("/google_login_client", tags=["security"])
-def google_login_client():
-    return HTMLResponse(js_client)
+@router.get("/auth/login_google", tags=["security"])
+def google_login_client(request: Request, next_page="/"):
+    context = {
+        "client_id": config['google']['id'],
+        "api_location": API_LOCATION,
+        "swap_token_endpoint": SWAP_TOKEN_ENDPOINT,
+        "success_route": next_page,
+        "request": request
+    }
+    return templates.TemplateResponse("login.html", context=context)
 
 
 @router.post(f"{SWAP_TOKEN_ENDPOINT}", response_model=Token, tags=["security"])
-async def swap_token(request: Request = None):
+async def swap_token(request: Request, db: AsyncSession = Depends(get_db)):
     if not request.headers.get("X-Requested-With"):
         raise HTTPException(status_code=400, detail="Incorrect headers")
 
@@ -62,14 +65,12 @@ async def swap_token(request: Request = None):
     except GoogleAuthError:
         raise HTTPException(status_code=400, detail="Unable to validate social login")
 
-    authenticated_user = authenticate_user_email(email)
-
-    if not authenticated_user:
-        raise HTTPException(status_code=400, detail="Incorrect email address")
+    if not await get_user_by_email(email, db):
+        await create_user(email, "", 0, db)
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": authenticated_user.email}, expires_delta=access_token_expires
+        data={"sub": email}, expires_delta=access_token_expires
     )
 
     token = jsonable_encoder(access_token)
@@ -87,8 +88,9 @@ async def swap_token(request: Request = None):
     return response
 
 
-@router.get("/logout")
-async def route_logout_and_remove_cookie():
-    response = RedirectResponse(url="/")
+@router.get("/auth/logout")
+async def route_logout_and_remove_cookie(next_page="/"):
+    response = RedirectResponse(url=next_page)
     response.delete_cookie("Authorization", domain=config["domain"])
+
     return response
