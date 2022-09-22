@@ -8,7 +8,6 @@ from auth.models import User
 app = FastAPI()
 
 origins = [
-    "https://ad.cusat.me",
     "http://localhost",
     "http://localhost:8000",
 ]

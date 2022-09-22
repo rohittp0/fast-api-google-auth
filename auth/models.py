@@ -15,4 +15,5 @@ class User(Base):
 
     email = Column(String(20), index=True, nullable=False, unique=True)
     name = Column(String(20), index=False, nullable=True)
-    phone = Column(Numeric(10), nullable=True)
+    phone = Column(Numeric(10), nullable=False, default=-1)
+    picture = Column(String(100), nullable=True)

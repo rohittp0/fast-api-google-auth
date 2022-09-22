@@ -80,8 +80,8 @@ async def get_user_by_email(email: str, db: AsyncSession):
     return users.first()
 
 
-async def create_user(email: str, name: str, phone: int, db: AsyncSession):
-    user = User(email=email, name=name, phone=phone)
+async def create_user(email: str, name: str, phone: int, picture: str, db: AsyncSession):
+    user = User(email=email, name=name, phone=phone, picture=picture)
     db.add(user)
 
     try:

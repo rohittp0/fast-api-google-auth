@@ -53,6 +53,8 @@ async def swap_token(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         info = id_token.verify_oauth2_token(auth_code, requests.Request(), config["google"]["id"])
 
+        print(info)
+
         if info['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
             raise ValueError('Wrong issuer.')
 
@@ -66,7 +68,7 @@ async def swap_token(request: Request, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Unable to validate social login")
 
     if not await get_user_by_email(email, db):
-        await create_user(email, "", 0, db)
+        await create_user(email, info.get("name"), -1, info.get("picture"), db)
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
