@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from starlette.middleware.cors import CORSMiddleware
 
 from auth import auth
-from auth.dependencies import get_current_user, login_redirect, login_required
+from auth.dependencies import get_current_user, login_redirect
 from auth.models import User
 
 app = FastAPI()
