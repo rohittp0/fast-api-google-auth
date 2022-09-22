@@ -1,12 +1,12 @@
 from typing import Optional
 from datetime import timedelta, datetime
-from uuid import uuid4
 
 import jwt
 from jwt import PyJWTError
-from sqlalchemy import select, insert
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
+from starlette.responses import RedirectResponse
 from starlette.status import HTTP_403_FORBIDDEN
 
 from fastapi import HTTPException, Depends
@@ -103,26 +103,27 @@ def create_access_token(*, data: dict, expires_delta: timedelta = None):
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
-    credentials_exception = HTTPException(
-        status_code=HTTP_403_FORBIDDEN, detail="Could not validate credentials"
-    )
-
     try:
         payload = jwt.decode(token, config["secret"], algorithms=["HS256"])
         email: str = payload.get("sub")
 
         if email is None:
-            raise credentials_exception
+            return None
 
     except PyJWTError:
-        raise credentials_exception
+        return None
 
     user = await get_user_by_email(email=email, db=db)
 
     if user is None:
-        raise credentials_exception
+        return None
 
     return user
+
+
+def login_redirect(current: str):
+    return RedirectResponse(f"/auth/login_google?next_page={current}", status_code=307)
+
 
 # class BasicAuth(SecurityBase):
 #     def __init__(self, scheme_name: str = None, auto_error: bool = True):
