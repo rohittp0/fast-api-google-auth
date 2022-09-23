@@ -22,7 +22,8 @@ def set_up():
         "domain": os.getenv("DOMAIN"),
         "protocol": os.getenv("PROTOCOL", "https://"),
         "port": os.getenv("PORT", 443),
-        "debug": os.getenv("DEBUG", False)
+        "debug": os.getenv("DEBUG", False),
+        "name": os.getenv("APP_NAME", "App")
     }
 
     return config

@@ -37,6 +37,7 @@ def google_login_client(request: Request, next_page="/"):
         "api_location": API_LOCATION,
         "swap_token_endpoint": SWAP_TOKEN_ENDPOINT,
         "success_route": next_page,
+        "app_name": config['name'],
         "request": request
     }
     return templates.TemplateResponse("login.html", context=context)

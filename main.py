@@ -1,15 +1,18 @@
 from fastapi import FastAPI, Depends
 from starlette.middleware.cors import CORSMiddleware
+from starlette.staticfiles import StaticFiles
 
 from auth import auth
 from auth.dependencies import get_current_user, login_redirect
 from auth.models import User
+from config.variables import set_up
 
 app = FastAPI()
+config = set_up()
 
 origins = [
-    "http://localhost",
-    "http://localhost:8000",
+    f"{config['protocol']}{config['domain']}",
+    f"{config['protocol']}{config['domain']}:{config['port']}"
 ]
 
 app.add_middleware(
@@ -21,6 +24,9 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+
+if config['debug']:
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 @app.get("/")
